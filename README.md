@@ -73,3 +73,26 @@ BEGIN
 END;
 /
 ```
+Insert seed data in latest_temperature2
+```
+INSERT INTO latest_temperature2 (loc_id, loc_name, tet_id, tet_desc, measurement, moment)
+SELECT t.loc_id,
+       l.name,
+       t.tet_id,
+       y.description,
+       t.measurement,
+       t.moment
+FROM temperature t
+JOIN (
+    SELECT loc_id, tet_id, MAX(moment) AS max_moment
+    FROM temperature
+    GROUP BY loc_id, tet_id
+) tm
+  ON t.loc_id = tm.loc_id
+ AND t.tet_id = tm.tet_id
+ AND t.moment = tm.max_moment
+JOIN location l   ON t.loc_id = l.loc_id
+JOIN temp_type y  ON t.tet_id = y.tet_id;
+```
+
+```
