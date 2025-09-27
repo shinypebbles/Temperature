@@ -29,21 +29,6 @@ Lets's create the Oracle tables.
 	  REFERENCES "LOCATION" ("LOC_ID") ENABLE;
   ALTER TABLE "TEMPERATURE" ADD CONSTRAINT "TEMPERATURE_FK2" FOREIGN KEY ("TET_ID")
 	  REFERENCES "TEMP_TYPE" ("TET_ID") ENABLE;
-
-CREATE OR REPLACE FORCE EDITIONABLE VIEW  "LATEST_TEMPERATURE" ("LOC_ID", "TET_ID", "MEASUREMENT", "MOMENT", "RECENT") AS 
-  SELECT L.name, Y.description, T.MEASUREMENT, T.MOMENT, CASE WHEN (SYSDATE - T.moment) * 24 * 60 < 15 THEN 'Y' ELSE 'N' END as recent
-FROM (
-    SELECT LOC_ID, TET_ID, MEASUREMENT, MOMENT,
-           RANK() OVER (PARTITION BY LOC_ID, TET_ID ORDER BY MOMENT DESC) AS rnk
-    FROM TEMPERATURE
-) T
-, location L
-, temp_type Y
-where T.loc_id=L.loc_id
-  and T.tet_id=Y.tet_id
-  and T.rnk = 1
-/
-
 ```
 Create a table that stores only the latest reading per location and type.
 ```
@@ -57,20 +42,6 @@ CREATE TABLE  "LATEST_TEMPERATURE2"
 	 CONSTRAINT "LATEST_TEMPERATURE_PK" PRIMARY KEY ("LOC_ID", "TET_ID")
   USING INDEX  ENABLE
    )
-/
-```
-Create a trigger that updates the latest temperature table
-```
-create or replace TRIGGER trg_update_latest_temperature
-AFTER INSERT ON temperature
-FOR EACH ROW
-BEGIN
-    UPDATE latest_temperature2
-       SET measurement = :NEW.measurement,
-           moment      = :NEW.moment
-     WHERE loc_id = :NEW.loc_id
-       AND tet_id = :NEW.tet_id;
-END;
 /
 ```
 Insert seed data in latest_temperature2
@@ -94,5 +65,23 @@ JOIN (
 JOIN location l   ON t.loc_id = l.loc_id
 JOIN temp_type y  ON t.tet_id = y.tet_id;
 ```
-
+Create a trigger that updates the latest temperature table
+```
+create or replace TRIGGER trg_update_latest_temperature
+AFTER INSERT ON temperature
+FOR EACH ROW
+BEGIN
+    UPDATE latest_temperature2
+       SET measurement = :NEW.measurement,
+           moment      = :NEW.moment
+     WHERE loc_id = :NEW.loc_id
+       AND tet_id = :NEW.tet_id;
+END;
+/
+```
+Create a view that shows the latest temperature with an indicator when the last reading was more then 15 minutes ago.
+```
+CREATE OR REPLACE FORCE EDITIONABLE VIEW "LATEST_TEMPERATURE" ("LOC_ID", "TET_ID", "MEASUREMENT", "MOMENT", "RECENT") AS 
+  select loc_name, tet_desc, measurement, moment, CASE WHEN (SYSDATE - moment) * 24 * 60 < 15 THEN 'Y' ELSE 'N' END as recent from latest_temperature2
+/
 ```
