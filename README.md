@@ -43,4 +43,34 @@ where T.loc_id=L.loc_id
   and T.tet_id=Y.tet_id
   and T.rnk = 1
 /
+
+```
+Create a table that stores only the latest reading per location and type.
+```
+CREATE TABLE  "LATEST_TEMPERATURE2" 
+   (	"LOC_ID" NUMBER NOT NULL ENABLE, 
+	"LOC_NAME" VARCHAR2(30) NOT NULL ENABLE, 
+	"TET_ID" NUMBER NOT NULL ENABLE, 
+	"TET_DESC" VARCHAR2(30) NOT NULL ENABLE, 
+	"MEASUREMENT" NUMBER NOT NULL ENABLE, 
+	"MOMENT" DATE NOT NULL ENABLE, 
+	 CONSTRAINT "LATEST_TEMPERATURE_PK" PRIMARY KEY ("LOC_ID", "TET_ID")
+  USING INDEX  ENABLE
+   )
+/
+```
+Create a trigger that updates the latest temperature table
+```
+create or replace TRIGGER trg_update_latest_temperature
+AFTER INSERT ON temperature
+FOR EACH ROW
+BEGIN
+    -- Altijd vervangen, want alleen nieuwere waarden komen binnen
+    UPDATE latest_temperature2
+       SET measurement = :NEW.measurement,
+           moment      = :NEW.moment
+     WHERE loc_id = :NEW.loc_id
+       AND tet_id = :NEW.tet_id;
+END;
+/
 ```
