@@ -65,7 +65,6 @@ create or replace TRIGGER trg_update_latest_temperature
 AFTER INSERT ON temperature
 FOR EACH ROW
 BEGIN
-    -- Altijd vervangen, want alleen nieuwere waarden komen binnen
     UPDATE latest_temperature2
        SET measurement = :NEW.measurement,
            moment      = :NEW.moment
