@@ -85,3 +85,54 @@ CREATE OR REPLACE FORCE EDITIONABLE VIEW "LATEST_TEMPERATURE" ("LOC_ID", "TET_ID
   select loc_name, tet_desc, measurement, moment, CASE WHEN (SYSDATE - moment) * 24 * 60 < 15 THEN 'Y' ELSE 'N' END as recent from latest_temperature2
 /
 ```
+Create a REST API for registering measurements.
+```
+declare
+  pl_loc_id location.loc_id%TYPE;
+begin
+  select loc_id
+  into pl_loc_id
+  from location
+  where name=:location;
+  if :room is not null then
+    insert into temperature
+    ( MOMENT
+    , LOC_ID
+    , TET_ID
+    , MEASUREMENT
+    ) values
+    ( sysdate
+    , pl_loc_id
+    , 1
+    , :room
+    );
+  end if;
+  if :supply is not null then
+    insert into temperature
+    ( MOMENT
+    , LOC_ID
+    , TET_ID
+    , MEASUREMENT
+    ) values
+    ( sysdate
+    , pl_loc_id
+    , 2
+    , :supply
+    );
+  end if;
+  if :return is not null then
+    insert into temperature
+    ( MOMENT
+    , LOC_ID
+    , TET_ID
+    , MEASUREMENT
+    ) values
+    ( sysdate
+    , pl_loc_id
+    , 3
+    , :return
+    );
+  end if;
+  :status := 201;
+end;
+```
